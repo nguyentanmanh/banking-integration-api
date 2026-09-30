@@ -1,0 +1,243 @@
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:partner-bridge-banking-api="http://www.mulesoft.org/schema/mule/partner-bridge-banking-api" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="         http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd         http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd         http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd         http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd         http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/partner-bridge-banking-api http://www.mulesoft.org/schema/mule/partner-bridge-banking-api/current/mule-partner-bridge-banking-api.xsd">
+    <http:listener-config name="openapi-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081"></http:listener-connection>
+    </http:listener-config>
+    <api-gateway:autodiscovery apiId="21199446" doc:name="Autodiscovery" flowRef="openapi-main"></api-gateway:autodiscovery>
+    <apikit:config api="resource::f7082d5a-6d08-4e07-a8e6-cb63c8137959:banking-integration-api:1.0.3:oas:zip:openapi.yaml" httpStatusVarName="httpStatus" keepApiBaseUri="true" name="openapi-config" outboundHeadersMapName="outboundHeaders"></apikit:config>
+    <partner-bridge-banking-api:config name="Config" property_host="banking-integration-api-rukrss.5sc6y6-4.usa-e2.cloudhub.io" property_port="443" property_protocol="HTTPS"></partner-bridge-banking-api:config>
+    <flow name="openapi-main">
+        <http:listener config-ref="openapi-httpListenerConfig" path="/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="openapi-config"></apikit:router>
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="openapi-console">
+        <http:listener config-ref="openapi-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="openapi-config"></apikit:console>
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\api\v1\accounts\(accountId):openapi-config">
+        <logger doc:id="dlrmgg" doc:name="Logger" level="INFO" message="#[attributes.method ++     &quot; /api/v1/accounts/{accountId}&quot; ++     &quot; accountId=&quot; ++     ((attributes.uriParams.accountId default &quot;&quot;) replace /.(?=.{4})/ with &quot;*&quot;) ++     &quot; requestId=&quot; ++     (attributes.headers[lower(&quot;Request-ID&quot;)] default correlationId) ++     &quot; language=&quot; ++     (attributes.headers[lower(&quot;Accept-Language&quot;)] default &quot;&quot;)]"></logger>
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="accountId">attributes.uriParams.'accountId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  accountId: "ACC-001",
+  holderName: "Nguyen Van A",
+  balance: 2500000,
+  currency: "VND",
+  status: "ACTIVE"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <ee:transform doc:id="bttaio" doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload doc:id="ytambh" doc:name="Set payload"><![CDATA[%dw 2.0
+output application/json
+---
+{
+  accountNo: payload.accountId,
+  customerName: payload.holderName,
+  balance: payload.balance,
+  currency: payload.currency,
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\api\v1\transfers:application\json:openapi-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  transferId: "BANK-TXN-001",
+  status: "COMPLETED"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\api\v1\accounts\(accountId)\summary:openapi-config">
+        
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="accountId">attributes.uriParams.'accountId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <scatter-gather doc:name="Scatter gather" doc:id="wxkmds">
+            <route>
+                <partner-bridge-banking-api:getbankaccount doc:name="getBankAccount" doc:id="fuqfga" account-id="#[vars.accountId]" request-id='#[attributes.headers[lower("Request-ID")] default correlationId]' accept-language='#[attributes.headers[lower("Accept-Language")] default "vi"]' config-ref="Config"/>
+            </route>
+            <route>
+                <partner-bridge-banking-api:getbankaccounttransactions doc:name="getBankAccountTransactions" doc:id="nuzoez" account-id="#[vars.accountId]" request-id='#[attributes.headers[lower("Request-ID")] default correlationId]' accept-language='#[attributes.headers[lower("Accept-Language")] default "vi"]' config-ref="Config"/>
+            </route>
+            
+        </scatter-gather>
+        <ee:transform doc:name="Transform Message" doc:id="oogxur" >
+            <ee:message >
+                <ee:set-payload doc:name="Set payload" doc:id="razfvo" ><![CDATA[%dw 2.0
+output application/json
+
+var account = payload."0".payload
+var transactions = payload."1".payload default []
+
+---
+{
+  account: {
+    accountNumber: account.accountNo,
+    balance: account.balance
+  },
+  recentTransactions: transactions map (transaction) -> {
+    transactionId: transaction.transactionId,
+    amount: transaction.amount,
+    currency: transaction.currency,
+    transactionDate: transaction.transactionDate
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\api\v1\accounts\(accountId)\transactions:openapi-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="accountId">attributes.uriParams.'accountId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+[
+  {
+    transactionId: "TXN-001",
+    amount: -500000,
+    currency: "VND",
+    transactionDate: "2026-09-28T10:30:00Z"
+  }, 
+  {
+    transactionId: "TXN-002",
+    amount: 1000000,
+    currency: "VND",
+    transactionDate: "2026-09-27T09:15:00Z"
+  }
+] as Array {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>

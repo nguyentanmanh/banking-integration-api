@@ -1,0 +1,29 @@
+{
+  "0": {
+    "payload": {
+      "accountId": "nisi",
+      "holderName": "amet",
+      "balance": 11,
+      "currency": "ipsum",
+      "status": "Nam"
+    },
+    "attributes": {
+      "reasonPhrase": "pretium",
+      "statusCode": 89
+    }
+  },
+  "1": {
+    "payload": [
+      {
+        "amount": 73,
+        "currency": "lectus",
+        "transactionDate": "In",
+        "transactionId": "elit"
+      }
+    ],
+    "attributes": {
+      "reasonPhrase": "consectetur",
+      "statusCode": 15
+    }
+  }
+}
